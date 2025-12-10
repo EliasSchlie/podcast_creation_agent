@@ -1,3 +1,15 @@
+This guides the assitent to create a readme for a project.
+
+
+- assume a technical audience as this is a git repo
+- Write short clear bullet points or numbered lists
+- Use fitting emojies to make reading/skimming more easy
+
+Follow this structure:
+- exclude every section that is not relevant jet (e.g. no installation section if there is nothing to install jet) 
+- Addapt sections based to fit for the current section - You don't need to perfectly follow this template - Reason yourself what would be the most useful readme
+
+
 # Project Name
 brief one sentence catchy description/value proposition of what it does.
 
