@@ -26,3 +26,6 @@ mlruns/*
 *.nav
 *.snm
 *.vrb
+
+*sessions/
+*data/
