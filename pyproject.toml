@@ -1,9 +1,15 @@
 [project]
 name = "podcast-creation-agent"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "Automated pipeline: PDF → NotebookLM podcast → Gemini transcription → Spotify upload"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "playwright>=1.57.0",
+    "playwright-stealth>=2.0.0",
+    "google-genai>=1.0.0",
+    "python-dotenv>=1.0.0",
 ]
+
+[project.scripts]
+podcast-pipeline = "pipeline.main:main"

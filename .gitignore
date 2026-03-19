@@ -29,3 +29,9 @@ mlruns/*
 
 *sessions/
 *data/
+output/
+debug/
+debug_*.png
+*.wav
+*.transcript.txt
+PLAN.md
