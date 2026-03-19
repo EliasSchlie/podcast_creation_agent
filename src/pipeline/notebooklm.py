@@ -77,9 +77,10 @@ def _run_flow(page: Page, pdf_path: Path, output_dir: Path) -> Path:
     page.locator("[aria-label='Customize Audio Overview']").first.click()
     page.wait_for_timeout(3000)
 
-    # 5. Set length to Long
+    # 5. Set length to Long (the Length toggle has Short/Default/Long buttons)
     log.info("[5/8] Setting length to Long...")
-    page.locator("text=Long").first.click()
+    # Use exact match + force to avoid hitting prompt text containing "Long"
+    page.get_by_text("Long", exact=True).click(force=True)
     page.wait_for_timeout(1000)
 
     # 6. Click Generate
