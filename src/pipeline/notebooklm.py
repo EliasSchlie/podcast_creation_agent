@@ -120,10 +120,20 @@ def _wait_for_generation(page: Page):
     while time.time() - start < GENERATION_TIMEOUT_S:
         body_text = page.locator("body").inner_text()
 
+        # Check for rate limit / error messages (fail fast)
+        if "limit" in body_text.lower() and "come back later" in body_text.lower():
+            raise RuntimeError(
+                "NotebookLM rate limit hit: 'Audio Overview limit, come back later.' "
+                "Wait for the daily limit to reset and try again."
+            )
+
         # Check if generation is still running
         if "Generating" in body_text:
             elapsed = time.time() - start
-            log.info("Still generating... (%.0fs elapsed)", elapsed)
+            if (
+                elapsed % 120 < POLL_INTERVAL_S
+            ):  # Log every ~2 min instead of every poll
+                log.info("Still generating... (%.0fs elapsed)", elapsed)
             page.wait_for_timeout(POLL_INTERVAL_S * 1000)
             continue
 
