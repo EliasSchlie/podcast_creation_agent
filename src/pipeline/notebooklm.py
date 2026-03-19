@@ -26,19 +26,31 @@ POLL_INTERVAL_S = 30
 
 
 def create_podcast_from_pdf(
-    pw: Playwright, pdf_path: Path, output_dir: Path, headless: bool = True
+    pw: Playwright,
+    pdf_path: Path,
+    output_dir: Path,
+    headless: bool = True,
+    duration: str = "Default",
 ) -> Path:
-    """Full flow: create notebook → upload PDF → generate podcast → download audio."""
-    log.info("Starting NotebookLM podcast creation for: %s", pdf_path.name)
+    """Full flow: create notebook → upload PDF → generate podcast → download audio.
+    duration: "Short", "Default", or "Long"
+    """
+    log.info(
+        "Starting NotebookLM podcast creation for: %s (duration=%s)",
+        pdf_path.name,
+        duration,
+    )
     ctx = get_notebooklm_context(pw, headless=headless)
     try:
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
-        return _run_flow(page, pdf_path, output_dir)
+        return _run_flow(page, pdf_path, output_dir, duration=duration)
     finally:
         ctx.close()
 
 
-def _run_flow(page: Page, pdf_path: Path, output_dir: Path) -> Path:
+def _run_flow(
+    page: Page, pdf_path: Path, output_dir: Path, duration: str = "Default"
+) -> Path:
     # 1. Navigate to home
     log.info("[1/8] Navigating to NotebookLM...")
     page.goto(NOTEBOOKLM_URL, wait_until="domcontentloaded", timeout=60_000)
@@ -77,11 +89,13 @@ def _run_flow(page: Page, pdf_path: Path, output_dir: Path) -> Path:
     page.locator("[aria-label='Customize Audio Overview']").first.click()
     page.wait_for_timeout(3000)
 
-    # 5. Set length to Long (the Length toggle has Short/Default/Long buttons)
-    log.info("[5/8] Setting length to Long...")
-    # Use exact match + force to avoid hitting prompt text containing "Long"
-    page.get_by_text("Long", exact=True).click(force=True)
-    page.wait_for_timeout(1000)
+    # 5. Set length (Short/Default/Long toggle)
+    log.info("[5/8] Setting length to %s...", duration)
+    if duration != "Default":
+        page.get_by_text(duration, exact=True).click(force=True)
+        page.wait_for_timeout(1000)
+    else:
+        log.info("Using default duration, no click needed")
 
     # 6. Click Generate
     log.info("[6/8] Clicking Generate...")

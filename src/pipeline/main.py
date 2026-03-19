@@ -37,7 +37,11 @@ def save_progress(progress: dict):
 
 
 def process_single_pdf(
-    pdf_path: Path, podcast_id: str, progress: dict, headless: bool = True
+    pdf_path: Path,
+    podcast_id: str,
+    progress: dict,
+    headless: bool = True,
+    duration: str = "Default",
 ):
     """Process a single PDF through the full pipeline."""
     from playwright.sync_api import sync_playwright
@@ -59,7 +63,7 @@ def process_single_pdf(
         log.info("🎙️  Step 1/3: Generating podcast via NotebookLM for %s", pdf_path.name)
         with sync_playwright() as pw:
             audio_path = create_podcast_from_pdf(
-                pw, pdf_path, episode_dir, headless=headless
+                pw, pdf_path, episode_dir, headless=headless, duration=duration
             )
         pdf_progress["audio_downloaded"] = True
         pdf_progress["audio_path"] = str(audio_path)
@@ -103,7 +107,12 @@ def process_single_pdf(
     log.info("✅ Completed full pipeline for: %s", pdf_path.name)
 
 
-def run_pipeline(pdf_paths: list[Path], podcast_id: str, headless: bool = True):
+def run_pipeline(
+    pdf_paths: list[Path],
+    podcast_id: str,
+    headless: bool = True,
+    duration: str = "Default",
+):
     """Process multiple PDFs through the pipeline."""
     progress = load_progress()
     total = len(pdf_paths)
@@ -113,7 +122,9 @@ def run_pipeline(pdf_paths: list[Path], podcast_id: str, headless: bool = True):
         log.info("Processing PDF %d/%d: %s", i, total, pdf_path.name)
         log.info("=" * 60)
         try:
-            process_single_pdf(pdf_path, podcast_id, progress, headless=headless)
+            process_single_pdf(
+                pdf_path, podcast_id, progress, headless=headless, duration=duration
+            )
         except Exception as e:
             log.error("❌ Failed processing %s: %s", pdf_path.name, e, exc_info=True)
             log.info("Continuing to next PDF...")
@@ -143,6 +154,12 @@ def main():
     run.add_argument("--podcast-id", help="Spotify podcast ID (overrides env var)")
     run.add_argument(
         "--headed", action="store_true", help="Run browsers in headed mode (visible)"
+    )
+    run.add_argument(
+        "--duration",
+        choices=["Short", "Default", "Long"],
+        default="Default",
+        help="NotebookLM podcast duration (default: Default)",
     )
     run.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
 
@@ -196,7 +213,12 @@ def main():
         for f in pdf_files:
             log.info("  - %s", f.name)
 
-        run_pipeline(pdf_files, podcast_id, headless=not args.headed)
+        run_pipeline(
+            pdf_files,
+            podcast_id,
+            headless=not args.headed,
+            duration=args.duration,
+        )
 
 
 if __name__ == "__main__":
