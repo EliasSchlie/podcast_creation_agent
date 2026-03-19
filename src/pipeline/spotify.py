@@ -155,10 +155,17 @@ def upload_episode(
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(3000)
 
-        # Step 6: Wait for and click Publish
-        log.info("Waiting for Publish button...")
+        # Step 6: Wait for Publish button to be enabled (large files take time to upload)
+        log.info("Waiting for Publish button to be enabled...")
         publish_btn = page.get_by_role("button", name="Publish")
-        publish_btn.wait_for(state="visible", timeout=30_000)
+        publish_btn.wait_for(state="visible", timeout=300_000)  # 5 min for large files
+        # Wait for it to become enabled (not just visible)
+        page.wait_for_function(
+            "() => { const btn = document.querySelector('button[type=\"submit\"]'); "
+            "return btn && !btn.disabled; }",
+            timeout=300_000,
+        )
+        log.info("Publish button enabled!")
         publish_btn.click()
         page.wait_for_timeout(2000)
 
