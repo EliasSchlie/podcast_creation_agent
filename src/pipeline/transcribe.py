@@ -28,7 +28,7 @@ def transcribe_audio(audio_path: Path) -> str:
 
     # Transcribe
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3-flash-preview",
         contents=[
             uploaded,
             "Transcribe this podcast audio. Include speaker labels (Host 1, Host 2, etc). "
@@ -46,7 +46,7 @@ def generate_metadata(transcript: str, source_name: str) -> dict:
     client = _get_client()
 
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3-flash-preview",
         contents=[
             f"This is a podcast episode transcript generated from: {source_name}\n\n"
             f"Transcript:\n{transcript[:10000]}\n\n"  # Limit to avoid token issues
