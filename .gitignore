@@ -35,3 +35,5 @@ debug_*.png
 *.wav
 *.transcript.txt
 PLAN.md
+podcast_cover.*
+.wt/
