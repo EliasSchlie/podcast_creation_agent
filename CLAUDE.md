@@ -14,6 +14,10 @@ python login.py spotify
 
 # Run pipeline
 PYTHONPATH=src uv run python -m pipeline.main run /path/to/pdfs --podcast-id <ID>
+
+# Multi-account (bypass per-account rate limits):
+PYTHONPATH=src uv run python -m pipeline.main run /path/to/pdfs \
+  --notebooklm-profile sessions/notebooklm-profile-2
 ```
 
 ## Architecture
@@ -31,6 +35,7 @@ src/pipeline/
 ## Key Details
 
 - **Browser profiles** in `sessions/` (gitignored) — persist Google/Spotify logins
+- **Multi-account**: `--notebooklm-profile` flag points to different browser profiles for different Google accounts
 - **Progress tracking** in `output/progress.json` — resume interrupted runs
 - **Headless by default** — use `--headed` flag for debugging
 - `.env` holds `GEMINI_API_KEY` and `SPOTIFY_PODCAST_ID`
@@ -51,6 +56,18 @@ src/pipeline/
 - Upload → file input → wait for title field → fill title/description → Next → Publish → Now → Publish
 - Cookie consent must be accepted or API calls fail silently
 - New podcast creation URL: `creators.spotify.com/pod/show/{id}/podcast/new`
+
+## Rate Limits (NotebookLM)
+
+- Per-account, not per-browser — stealth/fresh profiles don't help
+- `RateLimitError` stops pipeline immediately (no point retrying same account)
+
+## Gotchas
+
+- **Chrome lock files**: Clean `sessions/*/SingletonLock,Socket,Cookie` when switching between agent-browser and Playwright
+- **Spotify episode ordering**: No manual reorder — episodes sort by publish date only
+- **Gemini file cleanup**: `client.files.delete(name=uploaded.name)` — keyword arg required
+- **playwright-stealth v2 API**: `Stealth().apply_stealth_sync(page)` (not `stealth_sync(page)`)
 
 ## Env Vars
 
