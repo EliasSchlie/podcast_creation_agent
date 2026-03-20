@@ -16,6 +16,7 @@ from pipeline.config import (
     NOTEBOOKLM_URL,
     SPOTIFY_CREATORS_URL,
 )
+from pipeline.notebooklm import RateLimitError
 from pipeline.sessions import login_service
 
 log = logging.getLogger("pipeline")
@@ -47,6 +48,7 @@ def process_single_pdf(
     progress: dict,
     headless: bool = True,
     duration: str = "Default",
+    notebooklm_profile: Path | None = None,
 ):
     """Process a single PDF through the full pipeline."""
     from playwright.sync_api import sync_playwright
@@ -73,7 +75,12 @@ def process_single_pdf(
                 pdf_path.name,
             )
             audio_path = create_podcast_from_pdf(
-                pw, pdf_path, episode_dir, headless=headless, duration=duration
+                pw,
+                pdf_path,
+                episode_dir,
+                headless=headless,
+                duration=duration,
+                profile_dir=notebooklm_profile,
             )
             pdf_progress["audio_downloaded"] = True
             pdf_progress["audio_path"] = str(audio_path)
@@ -123,6 +130,7 @@ def run_pipeline(
     podcast_id: str,
     headless: bool = True,
     duration: str = "Default",
+    notebooklm_profile: Path | None = None,
 ):
     """Process multiple PDFs through the pipeline."""
     progress = load_progress()
@@ -134,8 +142,17 @@ def run_pipeline(
         log.info("=" * 60)
         try:
             process_single_pdf(
-                pdf_path, podcast_id, progress, headless=headless, duration=duration
+                pdf_path,
+                podcast_id,
+                progress,
+                headless=headless,
+                duration=duration,
+                notebooklm_profile=notebooklm_profile,
             )
+        except RateLimitError as e:
+            log.error("❌ Rate limit hit on %s: %s", pdf_path.name, e)
+            log.error("🛑 Stopping pipeline — no point retrying with same account.")
+            break
         except Exception as e:
             log.error("❌ Failed processing %s: %s", pdf_path.name, e, exc_info=True)
             log.info("Continuing to next PDF...")
@@ -172,6 +189,11 @@ def main():
         default="Default",
         help="NotebookLM podcast duration (default: Default)",
     )
+    run.add_argument(
+        "--notebooklm-profile",
+        type=Path,
+        help="Custom NotebookLM browser profile path (for multi-account support)",
+    )
     run.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
 
     args = parser.parse_args()
@@ -199,7 +221,7 @@ def main():
             print(f"\nPodcast created! ID: {pid}")
             print(f"Set this in .env: SPOTIFY_PODCAST_ID={pid}")
     elif args.command == "run":
-        podcast_id = getattr(args, "podcast_id", None) or SPOTIFY_PODCAST_ID
+        podcast_id = args.podcast_id or SPOTIFY_PODCAST_ID
         if not podcast_id:
             log.error(
                 "No podcast ID. Set SPOTIFY_PODCAST_ID in .env or use --podcast-id"
@@ -229,6 +251,7 @@ def main():
             podcast_id,
             headless=not args.headed,
             duration=args.duration,
+            notebooklm_profile=args.notebooklm_profile,
         )
 
 

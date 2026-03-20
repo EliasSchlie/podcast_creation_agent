@@ -46,7 +46,7 @@ def transcribe_audio(audio_path: Path) -> str:
         return transcript
     finally:
         try:
-            client.files.delete(uploaded.name)
+            client.files.delete(name=uploaded.name)
             log.info("Deleted uploaded file: %s", uploaded.name)
         except Exception as e:
             log.warning("Failed to delete uploaded file %s: %s", uploaded.name, e)

@@ -4,10 +4,7 @@ import logging
 from pathlib import Path
 from playwright.sync_api import sync_playwright, BrowserContext, Playwright
 
-from pipeline.config import (
-    NOTEBOOKLM_PROFILE,
-    SPOTIFY_PROFILE,
-)
+from pipeline.config import SPOTIFY_PROFILE
 
 log = logging.getLogger(__name__)
 
@@ -37,8 +34,10 @@ def launch_persistent(
             stealth.apply_stealth_sync(page)
         context.on("page", lambda p: stealth.apply_stealth_sync(p))
         log.info("Stealth applied successfully")
+    except ImportError as e:
+        log.warning("playwright-stealth not installed, skipping: %s", e)
     except Exception as e:
-        log.warning("Could not apply stealth: %s", e)
+        log.error("Stealth failed unexpectedly: %s", e, exc_info=True)
     return context
 
 
@@ -55,11 +54,6 @@ def login_service(service_name: str, profile_dir: Path, url: str):
         )
         log.info("Session saved to %s", profile_dir)
         ctx.close()
-
-
-def get_notebooklm_context(pw: Playwright, headless: bool = True) -> BrowserContext:
-    """Get a headless NotebookLM browser context with saved session."""
-    return launch_persistent(pw, NOTEBOOKLM_PROFILE, headless=headless)
 
 
 def get_spotify_context(pw: Playwright, headless: bool = True) -> BrowserContext:
