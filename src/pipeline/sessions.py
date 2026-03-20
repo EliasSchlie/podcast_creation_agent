@@ -11,11 +11,9 @@ from pipeline.config import (
 
 log = logging.getLogger(__name__)
 
+# Minimal args — avoid bot-detection flags
 BROWSER_ARGS = [
     "--disable-blink-features=AutomationControlled",
-    "--no-sandbox",
-    "--disable-dev-shm-usage",
-    "--disable-infobars",
 ]
 
 
@@ -30,15 +28,17 @@ def launch_persistent(
         viewport={"width": 1280, "height": 900},
         accept_downloads=True,
     )
-    # Apply stealth to all pages
+    # Apply stealth to evade bot detection
     try:
-        from playwright_stealth import stealth_sync
+        from playwright_stealth import Stealth
 
+        stealth = Stealth()
         for page in context.pages:
-            stealth_sync(page)
-        context.on("page", lambda p: stealth_sync(p))
-    except ImportError:
-        log.warning("playwright-stealth not installed, skipping stealth")
+            stealth.apply_stealth_sync(page)
+        context.on("page", lambda p: stealth.apply_stealth_sync(p))
+        log.info("Stealth applied successfully")
+    except Exception as e:
+        log.warning("Could not apply stealth: %s", e)
     return context
 
 
