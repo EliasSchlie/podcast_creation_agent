@@ -16,8 +16,8 @@ import time
 from pathlib import Path
 from playwright.sync_api import Playwright, Page
 
-from pipeline.config import NOTEBOOKLM_URL
-from pipeline.sessions import get_notebooklm_context
+from pipeline.config import NOTEBOOKLM_URL, NOTEBOOKLM_PROFILE
+from pipeline.sessions import launch_persistent
 
 log = logging.getLogger(__name__)
 
@@ -31,16 +31,18 @@ def create_podcast_from_pdf(
     output_dir: Path,
     headless: bool = True,
     duration: str = "Default",
+    profile_dir: Path | None = None,
 ) -> Path:
     """Full flow: create notebook → upload PDF → generate podcast → download audio.
     duration: "Short", "Default", or "Long"
+    profile_dir: custom browser profile (for multi-account support)
     """
     log.info(
         "Starting NotebookLM podcast creation for: %s (duration=%s)",
         pdf_path.name,
         duration,
     )
-    ctx = get_notebooklm_context(pw, headless=headless)
+    ctx = launch_persistent(pw, profile_dir or NOTEBOOKLM_PROFILE, headless=headless)
     try:
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
         return _run_flow(page, pdf_path, output_dir, duration=duration)
