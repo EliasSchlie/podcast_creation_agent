@@ -6,12 +6,17 @@ import logging
 import sys
 from pathlib import Path
 
-from dotenv import load_dotenv
-
-load_dotenv(Path(__file__).parent.parent.parent / ".env")  # noqa: E402
-
-from pipeline.config import ensure_dirs, OUTPUT_DIR, PROGRESS_FILE, SPOTIFY_PODCAST_ID  # noqa: E402
-from pipeline.sessions import login_notebooklm, login_spotify  # noqa: E402
+from pipeline.config import (
+    ensure_dirs,
+    OUTPUT_DIR,
+    PROGRESS_FILE,
+    SPOTIFY_PODCAST_ID,
+    NOTEBOOKLM_PROFILE,
+    SPOTIFY_PROFILE,
+    NOTEBOOKLM_URL,
+    SPOTIFY_CREATORS_URL,
+)
+from pipeline.sessions import login_service
 
 log = logging.getLogger("pipeline")
 
@@ -55,43 +60,49 @@ def process_single_pdf(
     episode_dir = OUTPUT_DIR / pdf_path.stem
     episode_dir.mkdir(parents=True, exist_ok=True)
 
-    # Step 1: NotebookLM — generate podcast audio
-    audio_path = episode_dir / f"{pdf_path.stem}.wav"
-    if pdf_progress.get("audio_downloaded") and audio_path.exists():
-        log.info("⏭️  Audio already exists for %s, skipping NotebookLM", pdf_path.name)
-    else:
-        log.info("🎙️  Step 1/3: Generating podcast via NotebookLM for %s", pdf_path.name)
-        with sync_playwright() as pw:
+    with sync_playwright() as pw:
+        # Step 1: NotebookLM — generate podcast audio
+        audio_path = episode_dir / f"{pdf_path.stem}.wav"
+        if pdf_progress.get("audio_downloaded") and audio_path.exists():
+            log.info(
+                "⏭️  Audio already exists for %s, skipping NotebookLM", pdf_path.name
+            )
+        else:
+            log.info(
+                "🎙️  Step 1/3: Generating podcast via NotebookLM for %s",
+                pdf_path.name,
+            )
             audio_path = create_podcast_from_pdf(
                 pw, pdf_path, episode_dir, headless=headless, duration=duration
             )
-        pdf_progress["audio_downloaded"] = True
-        pdf_progress["audio_path"] = str(audio_path)
-        progress[pdf_key] = pdf_progress
-        save_progress(progress)
+            pdf_progress["audio_downloaded"] = True
+            pdf_progress["audio_path"] = str(audio_path)
+            progress[pdf_key] = pdf_progress
+            save_progress(progress)
 
-    # Step 2: Transcribe + generate metadata
-    if pdf_progress.get("metadata_generated"):
-        log.info(
-            "⏭️  Metadata already exists for %s, skipping transcription", pdf_path.name
-        )
-        metadata = pdf_progress["metadata"]
-    else:
-        log.info(
-            "📝 Step 2/3: Transcribing and generating metadata for %s", pdf_path.name
-        )
-        metadata = process_audio(audio_path, pdf_path.stem)
-        pdf_progress["metadata_generated"] = True
-        pdf_progress["metadata"] = metadata
-        progress[pdf_key] = pdf_progress
-        save_progress(progress)
+        # Step 2: Transcribe + generate metadata
+        if pdf_progress.get("metadata_generated"):
+            log.info(
+                "⏭️  Metadata already exists for %s, skipping transcription",
+                pdf_path.name,
+            )
+            metadata = pdf_progress["metadata"]
+        else:
+            log.info(
+                "📝 Step 2/3: Transcribing and generating metadata for %s",
+                pdf_path.name,
+            )
+            metadata = process_audio(audio_path, pdf_path.stem)
+            pdf_progress["metadata_generated"] = True
+            pdf_progress["metadata"] = metadata
+            progress[pdf_key] = pdf_progress
+            save_progress(progress)
 
-    # Step 3: Upload to Spotify
-    if pdf_progress.get("spotify_uploaded"):
-        log.info("⏭️  Already uploaded to Spotify: %s", pdf_path.name)
-    else:
-        log.info("🎵 Step 3/3: Uploading to Spotify for %s", pdf_path.name)
-        with sync_playwright() as pw:
+        # Step 3: Upload to Spotify
+        if pdf_progress.get("spotify_uploaded"):
+            log.info("⏭️  Already uploaded to Spotify: %s", pdf_path.name)
+        else:
+            log.info("🎵 Step 3/3: Uploading to Spotify for %s", pdf_path.name)
             upload_episode(
                 pw,
                 podcast_id,
@@ -100,9 +111,9 @@ def process_single_pdf(
                 description=metadata["description"],
                 headless=headless,
             )
-        pdf_progress["spotify_uploaded"] = True
-        progress[pdf_key] = pdf_progress
-        save_progress(progress)
+            pdf_progress["spotify_uploaded"] = True
+            progress[pdf_key] = pdf_progress
+            save_progress(progress)
 
     log.info("✅ Completed full pipeline for: %s", pdf_path.name)
 
@@ -173,12 +184,12 @@ def main():
     setup_logging(getattr(args, "verbose", False))
 
     if args.command == "login-notebooklm":
-        login_notebooklm()
+        login_service("NotebookLM", NOTEBOOKLM_PROFILE, NOTEBOOKLM_URL)
     elif args.command == "login-spotify":
-        login_spotify()
+        login_service("Spotify Creators", SPOTIFY_PROFILE, SPOTIFY_CREATORS_URL)
     elif args.command == "login":
-        login_notebooklm()
-        login_spotify()
+        login_service("NotebookLM", NOTEBOOKLM_PROFILE, NOTEBOOKLM_URL)
+        login_service("Spotify Creators", SPOTIFY_PROFILE, SPOTIFY_CREATORS_URL)
     elif args.command == "create-podcast":
         from playwright.sync_api import sync_playwright
         from pipeline.spotify import create_new_podcast

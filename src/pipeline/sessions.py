@@ -7,8 +7,6 @@ from playwright.sync_api import sync_playwright, BrowserContext, Playwright
 from pipeline.config import (
     NOTEBOOKLM_PROFILE,
     SPOTIFY_PROFILE,
-    NOTEBOOKLM_URL,
-    SPOTIFY_CREATORS_URL,
 )
 
 log = logging.getLogger(__name__)
@@ -21,7 +19,7 @@ BROWSER_ARGS = [
 ]
 
 
-def _launch_persistent(
+def launch_persistent(
     pw: Playwright, profile_dir: Path, headless: bool = True
 ) -> BrowserContext:
     """Launch a Chromium persistent context with stealth settings."""
@@ -44,39 +42,26 @@ def _launch_persistent(
     return context
 
 
-def login_notebooklm():
-    """Open a headed browser for manual Google/NotebookLM login. Run once."""
-    log.info("Opening headed browser for NotebookLM login...")
-    log.info("Please log in to your Google account, then press Enter in the terminal.")
-    with sync_playwright() as pw:
-        ctx = _launch_persistent(pw, NOTEBOOKLM_PROFILE, headless=False)
-        page = ctx.pages[0] if ctx.pages else ctx.new_page()
-        page.goto(NOTEBOOKLM_URL)
-        input("\n>>> Log in to NotebookLM, then press ENTER here to save session... ")
-        log.info("Session saved to %s", NOTEBOOKLM_PROFILE)
-        ctx.close()
-
-
-def login_spotify():
-    """Open a headed browser for manual Spotify Creators login. Run once."""
-    log.info("Opening headed browser for Spotify Creators login...")
+def login_service(service_name: str, profile_dir: Path, url: str):
+    """Open a headed browser for manual login. Run once per service."""
+    log.info("Opening headed browser for %s login...", service_name)
     log.info("Please log in, then press Enter in the terminal.")
     with sync_playwright() as pw:
-        ctx = _launch_persistent(pw, SPOTIFY_PROFILE, headless=False)
+        ctx = launch_persistent(pw, profile_dir, headless=False)
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
-        page.goto(SPOTIFY_CREATORS_URL)
+        page.goto(url)
         input(
-            "\n>>> Log in to Spotify Creators, then press ENTER here to save session... "
+            f"\n>>> Log in to {service_name}, then press ENTER here to save session... "
         )
-        log.info("Session saved to %s", SPOTIFY_PROFILE)
+        log.info("Session saved to %s", profile_dir)
         ctx.close()
 
 
 def get_notebooklm_context(pw: Playwright, headless: bool = True) -> BrowserContext:
     """Get a headless NotebookLM browser context with saved session."""
-    return _launch_persistent(pw, NOTEBOOKLM_PROFILE, headless=headless)
+    return launch_persistent(pw, NOTEBOOKLM_PROFILE, headless=headless)
 
 
 def get_spotify_context(pw: Playwright, headless: bool = True) -> BrowserContext:
     """Get a headless Spotify browser context with saved session."""
-    return _launch_persistent(pw, SPOTIFY_PROFILE, headless=headless)
+    return launch_persistent(pw, SPOTIFY_PROFILE, headless=headless)

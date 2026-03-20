@@ -3,8 +3,12 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # Directories
 PROJECT_ROOT = Path(__file__).parent.parent.parent
+
+load_dotenv(PROJECT_ROOT / ".env")
 SESSIONS_DIR = PROJECT_ROOT / "sessions"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 PROGRESS_FILE = OUTPUT_DIR / "progress.json"

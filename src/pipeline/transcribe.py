@@ -8,12 +8,17 @@ from pipeline.config import GEMINI_API_KEY
 
 log = logging.getLogger(__name__)
 
+_client: genai.Client | None = None
+
 
 def _get_client() -> genai.Client:
-    """Get a Gemini API client."""
-    if not GEMINI_API_KEY:
-        raise ValueError("GEMINI_API_KEY not set. Add it to .env or environment.")
-    return genai.Client(api_key=GEMINI_API_KEY)
+    """Get a cached Gemini API client (lazy singleton)."""
+    global _client
+    if _client is None:
+        if not GEMINI_API_KEY:
+            raise ValueError("GEMINI_API_KEY not set. Add it to .env or environment.")
+        _client = genai.Client(api_key=GEMINI_API_KEY)
+    return _client
 
 
 def transcribe_audio(audio_path: Path) -> str:
@@ -27,17 +32,24 @@ def transcribe_audio(audio_path: Path) -> str:
     log.info("Upload complete, file URI: %s", uploaded.uri)
 
     # Transcribe
-    response = client.models.generate_content(
-        model="gemini-3-flash-preview",
-        contents=[
-            uploaded,
-            "Transcribe this podcast audio. Include speaker labels (Host 1, Host 2, etc). "
-            "Output the full transcript, nothing else.",
-        ],
-    )
-    transcript = response.text
-    log.info("Transcription complete (%d characters)", len(transcript))
-    return transcript
+    try:
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview",
+            contents=[
+                uploaded,
+                "Transcribe this podcast audio. Include speaker labels (Host 1, Host 2, etc). "
+                "Output the full transcript, nothing else.",
+            ],
+        )
+        transcript = response.text
+        log.info("Transcription complete (%d characters)", len(transcript))
+        return transcript
+    finally:
+        try:
+            client.files.delete(uploaded.name)
+            log.info("Deleted uploaded file: %s", uploaded.name)
+        except Exception as e:
+            log.warning("Failed to delete uploaded file %s: %s", uploaded.name, e)
 
 
 def generate_metadata(transcript: str, source_name: str) -> dict:
@@ -95,6 +107,5 @@ def process_audio(audio_path: Path, source_name: str) -> dict:
     return {
         "title": metadata["title"],
         "description": metadata["description"],
-        "transcript": transcript,
         "transcript_path": str(transcript_path),
     }

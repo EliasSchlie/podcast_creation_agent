@@ -24,7 +24,7 @@ from pipeline.config import (
     NOTEBOOKLM_URL,
     SPOTIFY_CREATORS_URL,
 )
-from pipeline.sessions import _launch_persistent
+from pipeline.sessions import launch_persistent
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
@@ -38,7 +38,7 @@ def do_login(pw, profile_dir, url, name):
     log.info(
         "Opening %s login browser (you have %ds to log in)...", name, LOGIN_TIMEOUT
     )
-    ctx = _launch_persistent(pw, profile_dir, headless=False)
+    ctx = launch_persistent(pw, profile_dir, headless=False)
     page = ctx.pages[0] if ctx.pages else ctx.new_page()
     page.goto(url)
 

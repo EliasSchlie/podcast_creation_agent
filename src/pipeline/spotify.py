@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from playwright.sync_api import Playwright
 
-from pipeline.config import SPOTIFY_WIZARD_URL, SPOTIFY_CREATORS_URL
+from pipeline.config import SPOTIFY_WIZARD_URL, SPOTIFY_CREATORS_URL, OUTPUT_DIR
 from pipeline.sessions import get_spotify_context
 
 log = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ def create_new_podcast(pw: Playwright, podcast_name: str, headless: bool = True)
 
         if not clicked:
             # Try the "+" icon or similar
-            page.screenshot(path="debug_spotify_home.png")
+            page.screenshot(path=str(OUTPUT_DIR / "debug_spotify_home.png"))
             log.warning("Could not find create podcast button. Screenshot saved.")
 
         # Fill in podcast name
@@ -86,7 +86,7 @@ def create_new_podcast(pw: Playwright, podcast_name: str, headless: bool = True)
             podcast_id = parts[0]
 
         if not podcast_id:
-            page.screenshot(path="debug_spotify_podcast_created.png")
+            page.screenshot(path=str(OUTPUT_DIR / "debug_spotify_podcast_created.png"))
             log.warning("Could not extract podcast ID from URL: %s", current_url)
 
         log.info("Created podcast with ID: %s", podcast_id)
@@ -186,7 +186,9 @@ def upload_episode(
 
     except Exception as e:
         log.error("Failed to upload episode: %s", e)
-        page.screenshot(path=f"debug_spotify_upload_error_{audio_path.stem}.png")
+        page.screenshot(
+            path=str(OUTPUT_DIR / f"debug_spotify_upload_error_{audio_path.stem}.png")
+        )
         raise
     finally:
         ctx.close()
