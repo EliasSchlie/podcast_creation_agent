@@ -16,6 +16,7 @@ from pipeline.config import (
     NOTEBOOKLM_URL,
     SPOTIFY_CREATORS_URL,
 )
+from pipeline.notebooklm import RateLimitError
 from pipeline.sessions import login_service
 
 log = logging.getLogger("pipeline")
@@ -148,14 +149,10 @@ def run_pipeline(
                 duration=duration,
                 notebooklm_profile=notebooklm_profile,
             )
-        except RuntimeError as e:
-            if "rate limit" in str(e).lower():
-                log.error("❌ Rate limit hit on %s: %s", pdf_path.name, e)
-                log.error("🛑 Stopping pipeline — no point retrying with same account.")
-                break
-            log.error("❌ Failed processing %s: %s", pdf_path.name, e, exc_info=True)
-            log.info("Continuing to next PDF...")
-            continue
+        except RateLimitError as e:
+            log.error("❌ Rate limit hit on %s: %s", pdf_path.name, e)
+            log.error("🛑 Stopping pipeline — no point retrying with same account.")
+            break
         except Exception as e:
             log.error("❌ Failed processing %s: %s", pdf_path.name, e, exc_info=True)
             log.info("Continuing to next PDF...")
@@ -224,7 +221,7 @@ def main():
             print(f"\nPodcast created! ID: {pid}")
             print(f"Set this in .env: SPOTIFY_PODCAST_ID={pid}")
     elif args.command == "run":
-        podcast_id = getattr(args, "podcast_id", None) or SPOTIFY_PODCAST_ID
+        podcast_id = args.podcast_id or SPOTIFY_PODCAST_ID
         if not podcast_id:
             log.error(
                 "No podcast ID. Set SPOTIFY_PODCAST_ID in .env or use --podcast-id"
@@ -254,7 +251,7 @@ def main():
             podcast_id,
             headless=not args.headed,
             duration=args.duration,
-            notebooklm_profile=getattr(args, "notebooklm_profile", None),
+            notebooklm_profile=args.notebooklm_profile,
         )
 
 

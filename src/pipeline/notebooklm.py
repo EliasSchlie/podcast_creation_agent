@@ -21,6 +21,11 @@ from pipeline.sessions import launch_persistent
 
 log = logging.getLogger(__name__)
 
+
+class RateLimitError(RuntimeError):
+    """NotebookLM daily generation limit reached."""
+
+
 GENERATION_TIMEOUT_S = 30 * 60  # 30 minutes max
 POLL_INTERVAL_S = 30
 
@@ -124,7 +129,7 @@ def _wait_for_generation(page: Page):
 
         # Check for rate limit / error messages (fail fast)
         if "limit" in body_text.lower() and "come back later" in body_text.lower():
-            raise RuntimeError(
+            raise RateLimitError(
                 "NotebookLM rate limit hit: 'Audio Overview limit, come back later.' "
                 "Wait for the daily limit to reset and try again."
             )
