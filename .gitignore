@@ -10,6 +10,9 @@ __pycache__/
 # Browser sessions (contain login cookies)
 sessions/
 
+# Input PDFs
+pdfs/
+
 # Pipeline output
 output/
 *.wav
