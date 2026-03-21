@@ -63,11 +63,11 @@ def generate_metadata(transcript: str, source_name: str) -> dict:
             f"This is a podcast episode transcript generated from: {source_name}\n\n"
             f"Transcript:\n{transcript[:10000]}\n\n"  # Limit to avoid token issues
             "Generate a podcast episode title and description.\n"
-            "The title MUST start with the chapter number prefix from the source name "
-            "(e.g. 'Chapter 1: ...' or 'Chapter 12: ...'). After the prefix, add an "
-            "engaging subtitle that reflects the main topics discussed.\n"
-            "The description MUST start with 'Chapter N of <book name>.' where the book "
-            "name is extracted from the source. Then 2-3 sentences summarizing the key points.\n\n"
+            "The title should be engaging and reflect the main topics discussed. "
+            "Do NOT add chapter numbers or prefixes. Just a good, descriptive title.\n"
+            "The description should start with the full original paper/source name "
+            "(e.g. 'Based on \"Constitutional AI\" by Bai et al.'). "
+            "Then 2-3 sentences summarizing the key points discussed in the episode.\n\n"
             "Respond in exactly this format:\n"
             "TITLE: <title>\n"
             "DESCRIPTION: <description>",
