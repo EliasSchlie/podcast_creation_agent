@@ -33,7 +33,6 @@ podcast-pipeline run /path/to/pdfs --notebooklm-profile sessions/notebooklm-prof
 
 - Per-account, not per-browser -- stealth/fresh profiles don't help
 - `RateLimitError` stops pipeline immediately (no point retrying same account)
-- Prioritize chapters with no episodes over chapters that already have a version
 
 ## Gotchas
 
