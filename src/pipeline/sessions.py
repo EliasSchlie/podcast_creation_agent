@@ -97,3 +97,40 @@ def login_service(service_name: str, profile_dir: Path, url: str):
 def get_spotify_context(pw: Playwright, headless: bool = True) -> BrowserContext:
     """Get a headless Spotify browser context with saved session."""
     return launch_persistent(pw, SPOTIFY_PROFILE, headless=headless)
+
+
+def check_session(pw: Playwright, service: str, profile_dir: Path, url: str) -> bool:
+    """Check if a browser session is still valid (not redirected to login).
+
+    Returns True if logged in, False if session expired.
+    """
+    log.info("Checking %s session (%s)...", service, profile_dir.name)
+    ctx = launch_persistent(pw, profile_dir, headless=True)
+    try:
+        page = ctx.pages[0] if ctx.pages else ctx.new_page()
+        page.goto(url, wait_until="domcontentloaded", timeout=30_000)
+        page.wait_for_timeout(3000)
+        final_url = page.url
+
+        # Google services redirect to accounts.google.com on expired session
+        if "accounts.google.com" in final_url:
+            log.warning("❌ %s session expired (redirected to Google login)", service)
+            return False
+
+        # Spotify redirects to login page or shows Log in button
+        if service == "Spotify":
+            login_btn = page.locator("text=Log in").first
+            try:
+                if login_btn.is_visible(timeout=2000):
+                    log.warning("❌ %s session expired (login page shown)", service)
+                    return False
+            except Exception:
+                pass
+
+        log.info("✅ %s session is valid (URL: %s)", service, final_url[:80])
+        return True
+    except Exception as e:
+        log.error("❌ %s session check failed: %s", service, e)
+        return False
+    finally:
+        ctx.close()
