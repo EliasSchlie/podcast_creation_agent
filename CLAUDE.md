@@ -21,22 +21,26 @@ podcast-pipeline run /path/to/pdfs --notebooklm-profile sessions/notebooklm-prof
 ## Browser Profiles
 
 - Stored in `sessions/` at **repo root** (gitignored) -- never in worktrees
-- When running from a worktree, always use `--notebooklm-profile` pointing to the root `sessions/`
+- `config.py` auto-resolves `SESSIONS_DIR` to git root via `git rev-parse --git-common-dir` -- works from worktrees automatically
 - `sessions/notebooklm-profile` -- default NotebookLM profile
 - `sessions/spotify-profile` -- Spotify Creators profile
 - Extra profiles: `sessions/notebooklm-profile-N` for multi-account support
 - Profiles persist Google/Spotify login cookies across runs
 - **Must re-login** if profile is deleted or session expires
+- `sessions/PROFILES.md` maps each profile to its Google/Spotify account
 
 ## Rate Limits (NotebookLM)
 
 - Per-account, not per-browser -- stealth/fresh profiles don't help
 - `RateLimitError` stops pipeline immediately (no point retrying same account)
+- Prioritize chapters with no episodes over chapters that already have a version
 
 ## Gotchas
 
 - **Browser binary**: Pipeline auto-detects agent-browser's Chrome for Testing (`~/.agent-browser/browsers/`) and uses it instead of Playwright's bundled Chromium. This ensures profile compatibility between agent-browser and the pipeline, and avoids Google's "insecure browser" warning during login. If agent-browser isn't installed, falls back to Playwright's Chromium.
-- **Chrome lock files**: Clean `sessions/*/SingletonLock,Socket,Cookie` when switching between agent-browser and Playwright
+- **Chrome lock files**: Clean `sessions/*/SingletonLock,Socket,Cookie` when switching between agent-browser and Playwright. Use `unlink` or `rm` without `-f` (`rm -f` blocked in this env)
+- **Spotify Creators delete flow**: Settings -> scroll to bottom -> Management -> Delete podcast. For episodes: options menu -> Delete episode (needs JS click, not in a11y tree)
+- **Progress tracking caveat**: `spotify_uploaded: true` in progress.json doesn't guarantee the episode appeared on Spotify -- verify manually if in doubt
 - **Spotify episode ordering**: No manual reorder -- episodes sort by publish date only
 - **Gemini file cleanup**: `client.files.delete(name=uploaded.name)` -- keyword arg required
 - **playwright-stealth v2 API**: `Stealth().apply_stealth_sync(page)` (not `stealth_sync(page)`)
