@@ -26,7 +26,6 @@ debug_*.png
 .cursor/
 
 # Dev files
-CLAUDE.md
 PLAN.md
 .wt/
 *.egg-info/
