@@ -52,22 +52,44 @@ def transcribe_audio(audio_path: Path) -> str:
             log.warning("Failed to delete uploaded file %s: %s", uploaded.name, e)
 
 
-def generate_metadata(transcript: str, source_name: str) -> dict:
-    """Generate episode title and description from transcript and source info."""
+def generate_metadata(
+    transcript: str, source_name: str, source_info: dict | None = None
+) -> dict:
+    """Generate episode title and description from transcript and source info.
+
+    source_info (optional): dict with keys like "title", "authors", "url" to avoid
+    hallucinating paper metadata. Loaded from <pdf>.meta.json sidecar if present.
+    """
     log.info("Generating episode metadata for source: %s", source_name)
     client = _get_client()
+
+    # Build source context from real metadata if available
+    if source_info:
+        source_context = (
+            f'Source: "{source_info.get("title", source_name)}"\n'
+            f"Authors: {source_info.get('authors', 'Unknown')}\n"
+            f"URL: {source_info.get('url', 'N/A')}\n"
+        )
+        desc_instruction = (
+            "The description MUST start with exactly this attribution line:\n"
+            f'\'Based on "{source_info.get("title", source_name)}" '
+            f"by {source_info.get('authors', 'the authors')}. "
+            f"{source_info.get('url', '')}'\n"
+            "Then add 2-3 sentences summarizing the key points discussed."
+        )
+    else:
+        source_context = f"Source filename: {source_name}\n"
+        desc_instruction = "The description should summarize the key points discussed in 2-3 sentences."
 
     response = client.models.generate_content(
         model="gemini-3-flash-preview",
         contents=[
-            f"This is a podcast episode transcript generated from: {source_name}\n\n"
+            f"This is a podcast episode transcript.\n{source_context}\n"
             f"Transcript:\n{transcript[:10000]}\n\n"  # Limit to avoid token issues
             "Generate a podcast episode title and description.\n"
             "The title should be engaging and reflect the main topics discussed. "
             "Do NOT add chapter numbers or prefixes. Just a good, descriptive title.\n"
-            "The description should start with the full original paper/source name "
-            "(e.g. 'Based on \"Constitutional AI\" by Bai et al.'). "
-            "Then 2-3 sentences summarizing the key points discussed in the episode.\n\n"
+            f"{desc_instruction}\n\n"
             "Respond in exactly this format:\n"
             "TITLE: <title>\n"
             "DESCRIPTION: <description>",
@@ -94,10 +116,30 @@ def generate_metadata(transcript: str, source_name: str) -> dict:
     return {"title": title, "description": description}
 
 
-def process_audio(audio_path: Path, source_name: str) -> dict:
+def _load_source_info(source_name: str, pdf_dir: Path | None = None) -> dict | None:
+    """Load source metadata from a <name>.meta.json sidecar file if it exists.
+
+    Expected format: {"title": "...", "authors": "...", "url": "..."}
+    """
+    if pdf_dir is None:
+        return None
+    meta_path = pdf_dir / f"{source_name}.meta.json"
+    if meta_path.exists():
+        import json
+
+        info = json.loads(meta_path.read_text())
+        log.info("Loaded source metadata from %s", meta_path.name)
+        return info
+    return None
+
+
+def process_audio(
+    audio_path: Path, source_name: str, pdf_dir: Path | None = None
+) -> dict:
     """Full transcription + metadata pipeline. Returns dict with title, description, transcript."""
     transcript = transcribe_audio(audio_path)
-    metadata = generate_metadata(transcript, source_name)
+    source_info = _load_source_info(source_name, pdf_dir)
+    metadata = generate_metadata(transcript, source_name, source_info=source_info)
 
     # Save transcript to file
     transcript_path = audio_path.with_suffix(".transcript.txt")

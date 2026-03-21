@@ -99,7 +99,7 @@ def process_single_pdf(
                 "📝 Step 2/3: Transcribing and generating metadata for %s",
                 pdf_path.name,
             )
-            metadata = process_audio(audio_path, pdf_path.stem)
+            metadata = process_audio(audio_path, pdf_path.stem, pdf_dir=pdf_path.parent)
             pdf_progress["metadata_generated"] = True
             pdf_progress["metadata"] = metadata
             progress[pdf_key] = pdf_progress
