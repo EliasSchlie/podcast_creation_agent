@@ -35,12 +35,7 @@ podcast-pipeline run /path/to/pdfs --notebooklm-profile sessions/notebooklm-prof
 
 ## Gotchas
 
-- **agent-browser must use Playwright's Chrome** to share profiles. Always launch with:
-  ```
-  PLAYWRIGHT_CHROME=$(uv run python -c "from playwright.sync_api import sync_playwright; pw=sync_playwright().start(); print(pw.chromium.executable_path); pw.stop()")
-  agent-browser --executable-path "$PLAYWRIGHT_CHROME" --profile sessions/<profile> ...
-  ```
-  Without this, agent-browser uses its own Chrome (different version), creating incompatible profiles.
+- **Browser binary**: Pipeline auto-detects agent-browser's Chrome for Testing (`~/.agent-browser/browsers/`) and uses it instead of Playwright's bundled Chromium. This ensures profile compatibility between agent-browser and the pipeline, and avoids Google's "insecure browser" warning during login. If agent-browser isn't installed, falls back to Playwright's Chromium.
 - **Chrome lock files**: Clean `sessions/*/SingletonLock,Socket,Cookie` when switching between agent-browser and Playwright
 - **Spotify episode ordering**: No manual reorder -- episodes sort by publish date only
 - **Gemini file cleanup**: `client.files.delete(name=uploaded.name)` -- keyword arg required

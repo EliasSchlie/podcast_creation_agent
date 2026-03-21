@@ -13,17 +13,55 @@ BROWSER_ARGS = [
     "--disable-blink-features=AutomationControlled",
 ]
 
+# agent-browser's Chrome for Testing — newer, passes Google's security checks.
+# Playwright's bundled Chromium gets flagged as "insecure browser" by Google login.
+_AGENT_BROWSER_CHROME = Path.home() / ".agent-browser" / "browsers"
+
+
+def _find_chrome_executable() -> str | None:
+    """Find agent-browser's Chrome for Testing binary (newest version)."""
+    if not _AGENT_BROWSER_CHROME.exists():
+        return None
+    chrome_dirs = sorted(_AGENT_BROWSER_CHROME.glob("chrome-*"), reverse=True)
+    for d in chrome_dirs:
+        # macOS
+        candidate = (
+            d
+            / "Google Chrome for Testing.app"
+            / "Contents"
+            / "MacOS"
+            / "Google Chrome for Testing"
+        )
+        if candidate.exists():
+            return str(candidate)
+        # Linux
+        candidate = d / "chrome"
+        if candidate.exists():
+            return str(candidate)
+    return None
+
 
 def launch_persistent(
     pw: Playwright, profile_dir: Path, headless: bool = True
 ) -> BrowserContext:
-    """Launch a Chromium persistent context with stealth settings."""
+    """Launch a Chromium persistent context with stealth settings.
+
+    Uses agent-browser's Chrome for Testing if available (passes Google login checks).
+    Falls back to Playwright's bundled Chromium.
+    """
+    chrome_exe = _find_chrome_executable()
+    if chrome_exe:
+        log.info(
+            "Using agent-browser's Chrome: %s", chrome_exe.split("/browsers/")[1][:30]
+        )
+
     context = pw.chromium.launch_persistent_context(
         user_data_dir=str(profile_dir),
         headless=headless,
         args=BROWSER_ARGS,
         viewport={"width": 1280, "height": 900},
         accept_downloads=True,
+        executable_path=chrome_exe,
     )
     # Apply stealth to evade bot detection
     try:
