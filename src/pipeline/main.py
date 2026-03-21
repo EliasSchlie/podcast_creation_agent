@@ -17,7 +17,7 @@ from pipeline.config import (
     SPOTIFY_CREATORS_URL,
 )
 from pipeline.notebooklm import RateLimitError
-from pipeline.sessions import login_service
+from pipeline.sessions import login_service, check_session
 
 log = logging.getLogger("pipeline")
 
@@ -170,6 +170,16 @@ def main():
     sub.add_parser("login-spotify", help="Log in to Spotify Creators (one-time setup)")
     sub.add_parser("login", help="Log in to both services")
 
+    # Check sessions
+    check = sub.add_parser(
+        "check-session", help="Verify browser sessions are still logged in"
+    )
+    check.add_argument(
+        "--notebooklm-profile",
+        type=Path,
+        help="Custom NotebookLM browser profile path",
+    )
+
     # Create podcast
     create = sub.add_parser("create-podcast", help="Create a new Spotify podcast")
     create.add_argument("name", help="Podcast name")
@@ -212,6 +222,20 @@ def main():
     elif args.command == "login":
         login_service("NotebookLM", NOTEBOOKLM_PROFILE, NOTEBOOKLM_URL)
         login_service("Spotify Creators", SPOTIFY_PROFILE, SPOTIFY_CREATORS_URL)
+    elif args.command == "check-session":
+        from playwright.sync_api import sync_playwright
+
+        profile = args.notebooklm_profile or NOTEBOOKLM_PROFILE
+        with sync_playwright() as pw:
+            nb_ok = check_session(pw, "NotebookLM", profile, NOTEBOOKLM_URL)
+        with sync_playwright() as pw:
+            sp_ok = check_session(pw, "Spotify", SPOTIFY_PROFILE, SPOTIFY_CREATORS_URL)
+
+        if nb_ok and sp_ok:
+            print("\n✅ All sessions valid — ready to run pipeline")
+        else:
+            print("\n❌ Some sessions expired — run `podcast-pipeline login` to fix")
+            sys.exit(1)
     elif args.command == "create-podcast":
         from playwright.sync_api import sync_playwright
         from pipeline.spotify import create_new_podcast

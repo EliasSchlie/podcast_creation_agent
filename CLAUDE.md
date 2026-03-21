@@ -11,6 +11,9 @@ uv sync && uv run playwright install chromium
 # One-time login (headed browsers, log in manually, press Enter)
 podcast-pipeline login
 
+# Verify sessions before running (catches expired logins early)
+podcast-pipeline check-session
+
 # Run pipeline
 podcast-pipeline run /path/to/pdfs --duration Default
 
@@ -40,6 +43,7 @@ podcast-pipeline run /path/to/pdfs --notebooklm-profile sessions/notebooklm-prof
 
 - Per-account, not per-browser -- stealth/fresh profiles don't help
 - `RateLimitError` stops pipeline immediately (no point retrying same account)
+- **Audio generation takes 5-30+ minutes per episode** -- don't assume it's stuck
 
 ## Docs
 

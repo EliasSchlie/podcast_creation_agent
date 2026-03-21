@@ -14,6 +14,10 @@ def create_new_podcast(pw: Playwright, podcast_name: str, headless: bool = True)
     """
     Create a new podcast on Spotify Creators.
     Returns the podcast ID from the URL.
+
+    Flow (as of 2026-03): User settings menu > Add a new show > Create a new show >
+    fill form (name, description, category, language) > Next > upload cover art > Next >
+    lands on dashboard with podcast ID in URL.
     """
     log.info("Creating new Spotify podcast: %s", podcast_name)
     ctx = get_spotify_context(pw, headless=headless)
@@ -24,62 +28,66 @@ def create_new_podcast(pw: Playwright, podcast_name: str, headless: bool = True)
         page.wait_for_timeout(3000)
         log.info("Current URL after login: %s", page.url)
 
-        # Look for "New podcast" or create button
-        create_selectors = [
-            "text=New podcast",
-            "text=Create a podcast",
-            "text=Create podcast",
-            "button:has-text('New')",
-            "a:has-text('New podcast')",
-            "[aria-label='Create new podcast']",
-        ]
-        clicked = False
-        for sel in create_selectors:
-            try:
-                el = page.locator(sel).first
-                if el.is_visible(timeout=3000):
-                    log.info("Found create podcast button: %s", sel)
-                    el.click()
-                    page.wait_for_timeout(3000)
-                    clicked = True
-                    break
-            except Exception:
-                continue
-
-        if not clicked:
-            # Try the "+" icon or similar
-            page.screenshot(path=str(OUTPUT_DIR / "debug_spotify_home.png"))
-            log.warning("Could not find create podcast button. Screenshot saved.")
-
-        # Fill in podcast name
-        name_input = page.get_by_role("textbox").first
-        name_input.wait_for(state="visible", timeout=10_000)
-        name_input.fill(podcast_name)
+        # Step 1: Open user settings menu (top-right)
+        user_menu = page.get_by_role("button", name="User settings menu")
+        user_menu.wait_for(state="visible", timeout=10_000)
+        user_menu.click()
         page.wait_for_timeout(1000)
 
-        # Submit / save
-        save_selectors = [
-            "text=Save",
-            "text=Create",
-            "text=Next",
-            "text=Continue",
-            "button:has-text('Save')",
-        ]
-        for sel in save_selectors:
-            try:
-                el = page.locator(sel).first
-                if el.is_visible(timeout=2000):
-                    el.click()
-                    page.wait_for_timeout(3000)
-                    break
-            except Exception:
-                continue
+        # Step 2: Click "Add a new show"
+        add_show = page.get_by_role("button", name="Add a new show")
+        add_show.wait_for(state="visible", timeout=5_000)
+        add_show.click()
+        page.wait_for_timeout(2000)
+
+        # Step 3: Click "Create a new show" in the dialog
+        create_show = page.get_by_role("button", name="Create a new show")
+        create_show.wait_for(state="visible", timeout=5_000)
+        create_show.click()
+        page.wait_for_timeout(3000)
+
+        # Step 4: Fill the form
+        log.info("Filling podcast details...")
+        page.get_by_role("textbox", name="Show name").fill(podcast_name)
+        page.get_by_role("textbox", name="Description").fill(
+            f"AI-generated podcast: {podcast_name}"
+        )
+
+        # Select category and language
+        category_select = page.get_by_role("combobox", name="Category")
+        if category_select.is_visible(timeout=3000):
+            category_select.select_option("Technology")
+        language_select = page.get_by_role("combobox", name="Language")
+        if language_select.is_visible(timeout=3000):
+            language_select.select_option("English")
+
+        # Click Next
+        page.get_by_role("button", name="Next").click()
+        page.wait_for_timeout(3000)
+
+        # Step 5: Cover art page -- skip if possible, or upload placeholder
+        next_btn = page.get_by_role("button", name="Next")
+        if next_btn.is_visible(timeout=3000):
+            # Next visible means cover art is optional or already set
+            next_btn.click()
+        else:
+            log.info("Cover art required, looking for file input...")
+            file_input = page.locator('input[type="file"]')
+            if file_input.count() > 0:
+                # Generate a minimal cover art on the fly
+                cover_path = _generate_placeholder_cover(podcast_name)
+                file_input.set_input_files(cover_path)
+                page.wait_for_timeout(3000)
+                next_btn = page.get_by_role("button", name="Next")
+                next_btn.wait_for(state="visible", timeout=10_000)
+                next_btn.click()
+
+        page.wait_for_timeout(5000)
 
         # Extract podcast ID from URL
         current_url = page.url
         log.info("After creation URL: %s", current_url)
 
-        # URL pattern: creators.spotify.com/pod/show/<podcast_id>/...
         podcast_id = ""
         if "/pod/show/" in current_url:
             parts = current_url.split("/pod/show/")[1].split("/")
@@ -94,6 +102,37 @@ def create_new_podcast(pw: Playwright, podcast_name: str, headless: bool = True)
 
     finally:
         ctx.close()
+
+
+def _generate_placeholder_cover(title: str) -> str:
+    """Generate a minimal 1400x1400 cover art image. Returns path to temp file."""
+    from PIL import Image, ImageDraw, ImageFont
+    import tempfile
+
+    img = Image.new("RGB", (1400, 1400))
+    draw = ImageDraw.Draw(img)
+
+    for y in range(1400):
+        for x in range(1400):
+            r = int(10 + (y / 1400) * 20)
+            g = int(30 + (1 - y / 1400) * 60 + (x / 1400) * 20)
+            b = min(255, int(80 + (y / 1400) * 100 + (x / 1400) * 40))
+            img.putpixel((x, y), (r, g, b))
+
+    try:
+        font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 80)
+    except OSError:
+        font = ImageFont.load_default()
+
+    words = title.split()
+    y_pos = 500
+    for word in words:
+        draw.text((100, y_pos), word, fill=(255, 255, 255), font=font)
+        y_pos += 100
+
+    path = tempfile.mktemp(suffix=".jpg")
+    img.save(path, "JPEG", quality=95)
+    return path
 
 
 def upload_episode(
