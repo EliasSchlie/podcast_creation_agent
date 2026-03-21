@@ -1,15 +1,4 @@
-"""NotebookLM automation — create notebook, upload PDF, generate podcast, download audio.
-
-UI flow (verified March 2026):
-1. Home: click "+ Create new" button
-2. Source dialog opens automatically — click "Upload files" → file chooser → set PDF
-3. Wait for upload processing, dialog closes, source appears in sidebar
-4. Click "Customize Audio Overview" (pen icon next to Audio Overview in Studio panel)
-5. In dialog: format "Deep Dive" is default, click "Long" for length
-6. Click "Generate" button in dialog
-7. Poll for completion — "Generating" text disappears, Play button appears
-8. Click "More" (three-dot) menu next to audio entry → "Download"
-"""
+"""NotebookLM automation -- create notebook, upload PDF, generate podcast, download audio."""
 
 import logging
 import time

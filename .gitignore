@@ -1,39 +1,32 @@
-multi-modal-researcher
-*.DS_Store
-.spotify_session.json
-videos/
-*__pycache__/
+# Python
+__pycache__/
 *.pyc
-.env
-.cursor
-.venv
-.db
-mlruns
-mlruns/*
-.pytest_cache
-# Ignore LaTeX auxiliary files
-*.aux
-*.bbl
-*.blg
-*.fdb_latexmk
-*.fls
-*.log
-*.synctex.gz
-*.toc
-*.lof
-*.lot
-*.out
-*.nav
-*.snm
-*.vrb
+.venv/
+.pytest_cache/
 
-*sessions/
-*data/
+# Environment
+.env
+
+# Browser sessions (contain login cookies)
+sessions/
+
+# Pipeline output
 output/
-debug/
-debug_*.png
 *.wav
 *.transcript.txt
+
+# Debug screenshots
+debug/
+debug_*.png
+
+# OS
+.DS_Store
+
+# IDE
+.cursor/
+
+# Dev files
+CLAUDE.md
 PLAN.md
-podcast_cover.*
 .wt/
+*.egg-info/

@@ -1,8 +1,9 @@
 [project]
 name = "podcast-creation-agent"
 version = "0.2.0"
-description = "Automated pipeline: PDF → NotebookLM podcast → Gemini transcription → Spotify upload"
+description = "Automated pipeline: PDF -> NotebookLM podcast -> Gemini transcription -> Spotify upload"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "playwright>=1.57.0",
@@ -11,5 +12,15 @@ dependencies = [
     "python-dotenv>=1.0.0",
 ]
 
+[project.urls]
+Repository = "https://github.com/EliasSchlie/podcast_creation_agent"
+
 [project.scripts]
 podcast-pipeline = "pipeline.main:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
