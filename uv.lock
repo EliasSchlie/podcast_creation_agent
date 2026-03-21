@@ -426,7 +426,7 @@ wheels = [
 [[package]]
 name = "podcast-creation-agent"
 version = "0.2.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "google-genai" },
     { name = "playwright" },
