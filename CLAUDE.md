@@ -27,6 +27,13 @@ podcast-pipeline run /path/to/pdfs --notebooklm-profile sessions/notebooklm-prof
 - Extra profiles: `sessions/notebooklm-profile-N` for multi-account support
 - Profiles persist Google/Spotify login cookies across runs
 - **Must re-login** if profile is deleted or session expires
+- **Creating new profiles**: Always use `podcast-pipeline login-*` (not agent-browser). It uses the correct Chrome binary with stealth, avoiding Google's "insecure browser" warning. For extra NotebookLM accounts: rename the default profile, run login again, then rename back:
+  ```
+  mv sessions/notebooklm-profile sessions/notebooklm-profile-2
+  podcast-pipeline login-notebooklm   # log in with different account
+  mv sessions/notebooklm-profile sessions/notebooklm-profile-3
+  mv sessions/notebooklm-profile-2 sessions/notebooklm-profile  # restore default
+  ```
 - `sessions/PROFILES.md` maps each profile to its Google/Spotify account
 
 ## Rate Limits (NotebookLM)
