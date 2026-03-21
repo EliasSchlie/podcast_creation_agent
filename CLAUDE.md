@@ -41,6 +41,10 @@ podcast-pipeline run /path/to/pdfs --notebooklm-profile sessions/notebooklm-prof
 - Per-account, not per-browser -- stealth/fresh profiles don't help
 - `RateLimitError` stops pipeline immediately (no point retrying same account)
 
+## Docs
+
+- [Cover art generation](docs/cover-art.md) -- Pillow script for podcast cover images
+
 ## Gotchas
 
 - **Browser binary**: Pipeline auto-detects agent-browser's Chrome for Testing (`~/.agent-browser/browsers/`) and uses it instead of Playwright's bundled Chromium. This ensures profile compatibility between agent-browser and the pipeline, and avoids Google's "insecure browser" warning during login. If agent-browser isn't installed, falls back to Playwright's Chromium.

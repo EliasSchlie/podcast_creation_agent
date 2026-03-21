@@ -1,0 +1,21 @@
+# Creating Podcast Cover Art
+
+The podcast cover is a 1400x1400 JPEG generated with Pillow. Spotify requires minimum 300x300, recommends 3000x3000.
+
+## Generate cover
+
+```bash
+uv run python docs/generate_cover.py
+# Creates podcast_cover.jpg in current directory
+```
+
+## Customize
+
+Edit `docs/generate_cover.py` to change:
+- **Colors**: Modify the gradient RGB values in the nested loop
+- **Text**: Change the `draw.text()` calls for title/subtitle
+- **Font**: Uses system Helvetica by default, falls back to Pillow's default font
+
+## Upload to Spotify
+
+Upload the cover via Spotify Creators dashboard (Settings -> show cover art) or through the pipeline's `create-podcast` command.
