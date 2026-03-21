@@ -11,9 +11,10 @@ uv run python docs/generate_cover.py
 
 ## Customize
 
-Edit `docs/generate_cover.py` to change:
+Always use `docs/generate_cover.py` as the starting template -- only change colors and text. The layout (font sizes, positions, gradient style) is already tuned for Spotify's thumbnail.
+
 - **Colors**: Modify the gradient RGB values in the nested loop
-- **Text**: Change the `draw.text()` calls for title/subtitle
+- **Text**: Change the `draw.text()` calls for title/subtitle. All title words use `font_large` (same size).
 - **Font**: Uses system Helvetica by default, falls back to Pillow's default font
 
 ## Upload to Spotify
