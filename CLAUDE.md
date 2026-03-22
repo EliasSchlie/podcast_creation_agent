@@ -8,6 +8,10 @@ Automated pipeline: PDF -> NotebookLM podcast -> Gemini transcription -> Spotify
 cd ~/projects/podcast_creation_agent
 uv sync && uv run playwright install chromium
 
+# Configure (copy .env.example, add your keys)
+cp .env.example .env
+# Required: GEMINI_API_KEY, SPOTIFY_PODCAST_ID
+
 # One-time login (headed browsers, log in manually, press Enter)
 podcast-pipeline login
 
@@ -39,11 +43,25 @@ podcast-pipeline run /path/to/pdfs --notebooklm-profile sessions/notebooklm-prof
   ```
 - `sessions/PROFILES.md` maps each profile to its Google/Spotify account
 
-## Rate Limits (NotebookLM)
+## Rate Limits
 
+### NotebookLM
 - Per-account, not per-browser -- stealth/fresh profiles don't help
 - `RateLimitError` stops pipeline immediately (no point retrying same account)
 - **Audio generation takes 5-30+ minutes per episode** -- don't assume it's stuck
+
+### Gemini
+- Free tier: 20 requests/day per model -- running parallel pipelines burns through this fast
+- Paid key has no practical limit for this use case
+- Rate limit error is `429 RESOURCE_EXHAUSTED` -- the pipeline doesn't auto-retry, re-run to resume
+
+## Episode Metadata
+
+Place a `<pdf-name>.meta.json` sidecar next to each PDF to provide exact paper metadata:
+```json
+{"title": "Paper Title", "authors": "Author et al. (2024)", "url": "https://arxiv.org/abs/..."}
+```
+Without it, Gemini infers metadata from the transcript (may hallucinate names/authors).
 
 ## Docs
 
@@ -56,6 +74,7 @@ podcast-pipeline run /path/to/pdfs --notebooklm-profile sessions/notebooklm-prof
 - **Spotify Creators delete flow**: Settings -> scroll to bottom -> Management -> Delete podcast. For episodes: options menu -> Delete episode (needs JS click, not in a11y tree)
 - **Progress tracking caveat**: `spotify_uploaded: true` in progress.json doesn't guarantee the episode appeared on Spotify -- verify manually if in doubt
 - **Spotify episode ordering**: No manual reorder -- episodes sort by publish date only
+- **Parallel pipelines**: Multiple pipelines can run with different `--notebooklm-profile` flags, but they share `progress.json` and `spotify-profile` -- Spotify upload conflicts possible. Serialize uploads or run sequentially for reliability.
 - **Gemini file cleanup**: `client.files.delete(name=uploaded.name)` -- keyword arg required
 - **playwright-stealth v2 API**: `Stealth().apply_stealth_sync(page)` (not `stealth_sync(page)`)
 - **Spotify popovers**: Options menu items (Delete/Download) aren't in accessibility snapshots -- use JS `querySelector` + `.click()` workaround
