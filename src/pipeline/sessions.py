@@ -117,15 +117,25 @@ def check_session(pw: Playwright, service: str, profile_dir: Path, url: str) -> 
             log.warning("❌ %s session expired (redirected to Google login)", service)
             return False
 
-        # Spotify redirects to login page or shows Log in button
+        # Spotify: the public landing page always shows "Log in" in the nav,
+        # so checking for that text gives false negatives. Instead, navigate
+        # to the dashboard — if logged in it loads; if not, it redirects to
+        # the login/landing page.
         if service == "Spotify":
-            login_btn = page.locator("text=Log in").first
-            try:
-                if login_btn.is_visible(timeout=2000):
-                    log.warning("❌ %s session expired (login page shown)", service)
-                    return False
-            except Exception:
-                pass
+            page.goto(
+                "https://creators.spotify.com/dashboard",
+                wait_until="domcontentloaded",
+                timeout=30_000,
+            )
+            page.wait_for_timeout(3000)
+            final_url = page.url
+            if "/dashboard" not in final_url:
+                log.warning(
+                    "❌ %s session expired (dashboard redirected to %s)",
+                    service,
+                    final_url[:80],
+                )
+                return False
 
         log.info("✅ %s session is valid (URL: %s)", service, final_url[:80])
         return True
