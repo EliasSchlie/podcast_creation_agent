@@ -21,6 +21,9 @@ podcast-pipeline check-session
 # Run pipeline
 podcast-pipeline run /path/to/pdfs --duration Default
 
+# Target a specific podcast (overrides SPOTIFY_PODCAST_ID in .env)
+podcast-pipeline run paper.pdf --podcast-id <id>
+
 # Multi-account (bypass per-account rate limits)
 podcast-pipeline run /path/to/pdfs --notebooklm-profile sessions/notebooklm-profile-2
 ```
@@ -34,6 +37,7 @@ podcast-pipeline run /path/to/pdfs --notebooklm-profile sessions/notebooklm-prof
 - Extra profiles: `sessions/notebooklm-profile-N` for multi-account support
 - Profiles persist Google/Spotify login cookies across runs
 - **Must re-login** if profile is deleted or session expires
+- **Session refresh shortcut**: If `check-session` reports Spotify expired, try opening `creators.spotify.com` via agent-browser with `--profile sessions/spotify-profile` first -- Google cookies may still be valid and will auto-login
 - **Creating new profiles**: Always use `podcast-pipeline login-*` (not agent-browser). It uses the correct Chrome binary with stealth, avoiding Google's "insecure browser" warning. For extra NotebookLM accounts: rename the default profile, run login again, then rename back:
   ```
   mv sessions/notebooklm-profile sessions/notebooklm-profile-2
